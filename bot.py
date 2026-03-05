@@ -31,11 +31,8 @@ async def start(message: types.Message):
 @dp.message_handler(lambda message: message.text == "📡 Получить конфиг")
 async def get_config(message: types.Message):
 
-    config = load_config()
-
-    await message.answer(
-        f"Ваш конфиг:\n\n{config}"
-    )
+    with open("config.txt", "rb") as file:
+        await message.answer_document(file, caption="Ваш VPN конфиг")
 
 @dp.message_handler(lambda message: message.text == "💳 Купить доступ")
 async def buy(message: types.Message):
@@ -75,4 +72,5 @@ async def users(message: types.Message):
 if __name__ == '__main__':
 
     executor.start_polling(dp, skip_updates=True)
+
 
