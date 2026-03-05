@@ -1,52 +1,37 @@
+# db.py
+
 import sqlite3
-import time
-
-conn = sqlite3.connect("database.db")
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users(
-id INTEGER PRIMARY KEY,
-ref INTEGER,
-balance INTEGER DEFAULT 0
-)
-""")
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS subs(
-user_id INTEGER,
-key TEXT,
-expire INTEGER
-)
-""")
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS payments(
-user_id INTEGER,
-amount INTEGER,
-status TEXT
-)
-""")
-
-conn.commit()
+from config import DATABASE
 
 
-def add_user(user_id, ref=None):
-    cursor.execute("INSERT OR IGNORE INTO users(id,ref) VALUES(?,?)",(user_id,ref))
+def connect():
+    return sqlite3.connect(DATABASE)
+
+
+def create_tables():
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        telegram_id INTEGER,
+        subscription TEXT
+    )
+    """)
+
     conn.commit()
+    conn.close()
 
 
-def add_sub(user_id,key,days):
-    expire = int(time.time()) + days*86400
-    cursor.execute("INSERT INTO subs VALUES(?,?,?)",(user_id,key,expire))
+def add_user(user_id):
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT OR IGNORE INTO users (telegram_id, subscription) VALUES (?, ?)",
+        (user_id, "none")
+    )
+
     conn.commit()
-
-
-def get_sub(user_id):
-    cursor.execute("SELECT key,expire FROM subs WHERE user_id=?",(user_id,))
-    return cursor.fetchone()
-
-
-def delete_sub(user_id):
-    cursor.execute("DELETE FROM subs WHERE user_id=?",(user_id,))
-    conn.commit()
+    conn.close()
