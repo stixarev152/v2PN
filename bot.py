@@ -178,13 +178,6 @@ async def users(message: types.Message):
 
     await message.answer("📊 Функция списка пользователей будет добавлена позже.")
 
-
-# ЗАПУСК
-if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
-
-async def on_startup(dp):
-    await bot.delete_webhook(drop_pending_updates=True)
-
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+
