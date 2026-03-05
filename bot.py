@@ -5,7 +5,7 @@ from config import BOT_TOKEN, ADMIN_ID
 
 logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=5918595152:AAGNc6Hy00LINGxMo01IJk_hxSw23WgG_zU)
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
 menu = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -75,3 +75,4 @@ async def users(message: types.Message):
 if __name__ == '__main__':
 
     executor.start_polling(dp, skip_updates=True)
+
