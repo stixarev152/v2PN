@@ -171,13 +171,10 @@ async def admin(message: types.Message):
 
 # СПИСОК ПОЛЬЗОВАТЕЛЕЙ (пока заглушка)
 @dp.message_handler(commands=['users'])
-async def users(message: types.Message):
+# очистка webhook при запуске
+async def on_startup(dp):
+    await bot.delete_webhook(drop_pending_updates=True)
 
-    if message.from_user.id != ADMIN_ID:
-        return
-
-    await message.answer("📊 Функция списка пользователей будет добавлена позже.")
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
-
