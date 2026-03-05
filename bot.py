@@ -4,7 +4,7 @@ from aiogram.utils import executor
 
 import db
 import keyboards
-import crypto
+import cryptobot
 import vpn
 import config
 
