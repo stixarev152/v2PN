@@ -1,174 +1,84 @@
-import time
-import asyncio
+# bot.py
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 
-import db
-import keyboards
-import cryptobot
-import vpn
-import config
+from config import BOT_TOKEN
+from keyboards import main_menu, vpn_menu
+from db import create_tables, add_user
+from vpn import create_vpn
 
 
-bot = Bot(token=config.BOT_TOKEN)
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
 
-# START
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
 
-    args = message.get_args()
+    add_user(message.from_user.id)
 
-    ref = None
-    if args:
-        try:
-            ref = int(args)
-        except:
-            ref = None
+    text = """
+🚀 Добро пожаловать в VPN сервис!
 
-    db.add_user(message.from_user.id, ref)
+Что умеет бот:
+
+🌐 Купить VPN
+📖 Получить инструкцию
+👤 Управлять подпиской
+
+Выберите действие:
+"""
+
+    await message.answer(text, reply_markup=main_menu())
+
+
+@dp.message_handler(lambda message: message.text == "🌐 Купить VPN")
+async def buy_vpn(message: types.Message):
 
     await message.answer(
-        "🚀 Добро пожаловать в VPN сервис",
-        reply_markup=keyboards.main_menu()
+        "Выберите срок подписки:",
+        reply_markup=vpn_menu()
     )
 
 
-# BUY MENU
-@dp.callback_query_handler(lambda c: c.data == "buy")
-async def buy(call: types.CallbackQuery):
+@dp.message_handler(lambda message: message.text == "📖 Инструкция")
+async def guide(message: types.Message):
 
-    await call.message.edit_text(
-        "💳 Выберите тариф",
-        reply_markup=keyboards.buy_menu()
-    )
+    text = """
+📖 Инструкция подключения VPN
 
+1️⃣ Скачайте приложение WireGuard / OpenVPN
+2️⃣ Получите конфиг в боте
+3️⃣ Импортируйте его в приложение
+4️⃣ Подключитесь
 
-# BUY TARIFF
-@dp.callback_query_handler(lambda c: c.data.startswith("buy_"))
-async def buy_tariff(call: types.CallbackQuery):
-
-    days = int(call.data.split("_")[1])
-
-    price = {
-        30: config.PRICE_30,
-        90: config.PRICE_90,
-        365: config.PRICE_365
-    }[days]
-
-    url, invoice = cryptobot.create_invoice(price)
-
-    await call.message.answer(
-        f"💳 Оплатите VPN\n\n{url}"
-    )
-
-    # проверяем оплату
-    while True:
-
-        status = cryptobot.check_invoice(invoice)
-
-        if status == "paid":
-
-            key = vpn.create_vpn_key()
-
-            db.add_sub(call.from_user.id, key, days)
-
-            await call.message.answer(
-                f"✅ Оплата прошла\n\n"
-                f"🔑 Ваш VPN ключ:\n{key}",
-                reply_markup=keyboards.main_menu()
-            )
-
-            break
-
-        await asyncio.sleep(10)
-
-
-# PROFILE
-@dp.callback_query_handler(lambda c: c.data == "profile")
-async def profile(call: types.CallbackQuery):
-
-    sub = db.get_sub(call.from_user.id)
-
-    if not sub:
-        await call.message.answer("❌ Нет активной подписки")
-        return
-
-    key, expire = sub
-
-    days = int((expire - time.time()) / 86400)
-
-    await call.message.answer(
-        f"""
-👤 Личный кабинет
-
-🔑 Ключ:
-{key}
-
-⏳ Осталось:
-{days} дней
+Готово ✅
 """
+
+    await message.answer(text)
+
+
+@dp.message_handler(lambda message: message.text == "👤 Мой аккаунт")
+async def account(message: types.Message):
+
+    await message.answer(
+        "Ваш аккаунт активен."
     )
 
 
-# REFERRAL
-@dp.callback_query_handler(lambda c: c.data == "ref")
-async def ref(call: types.CallbackQuery):
+@dp.message_handler(lambda message: message.text == "1 месяц")
+async def buy1(message: types.Message):
 
-    bot_data = await bot.get_me()
+    config = create_vpn(message.from_user.id)
 
-    link = f"https://t.me/{bot_data.username}?start={call.from_user.id}"
-
-    await call.message.answer(
-        f"""
-👥 Реферальная программа
-
-Ваша ссылка:
-
-{link}
-"""
+    await message.answer(
+        f"Ваш VPN:\n{config}"
     )
 
 
-# SUPPORT
-@dp.callback_query_handler(lambda c: c.data == "support")
-async def support(call: types.CallbackQuery):
+if __name__ == "__main__":
 
-    await call.message.answer(
-        "🛠 Техподдержка\n\n"
-        "Напишите: @your_support_username"
-    )
+    create_tables()
 
-
-# INSTRUCTION
-@dp.callback_query_handler(lambda c: c.data == "help")
-async def help_menu(call: types.CallbackQuery):
-
-    await call.message.answer(
-        """
-📖 Инструкция
-
-1️⃣ Купите VPN
-2️⃣ Получите ключ
-3️⃣ Вставьте его в приложение
-
-Поддерживаемые клиенты:
-• V2Ray
-• Shadowrocket
-• Clash
-"""
-    )
-
-
-# BACK
-@dp.callback_query_handler(lambda c: c.data == "back")
-async def back(call: types.CallbackQuery):
-
-    await call.message.edit_text(
-        "🏠 Главное меню",
-        reply_markup=keyboards.main_menu()
-    )
-
-
-executor.start_polling(dp)
+    executor.start_polling(dp)
